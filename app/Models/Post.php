@@ -27,7 +27,7 @@ class Post extends Model
             'slug' => [
                 'source' => 'title'
             ]
-        ];
+        ];  
     }
     
     public function comments()

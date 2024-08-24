@@ -62,6 +62,8 @@ use App\Http\Controllers\UserController;
 
 Route::get('/posts/details', [PostsController::class, 'showDetails'])
     ->name('posts.details');
+    Route::get('/posts/main', [PostsController::class, 'main'])
+    ->name('posts.main');
 
     Route::get('/posts/restore/{post}', [PostsController::class, 'restore'])
     ->name('posts.restore');
@@ -81,3 +83,7 @@ Route::resource('users', UserController::class);
 // DELETE          posts/{post} ................................................. posts.destroy › postsController@destroy
 // GET|HEAD        posts/{post}/edit .................................................. posts.edit › postsController@edit
 // GET|HEAD        up ............................................................................................................................................................ 
+
+Auth::routes();
+
+Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');

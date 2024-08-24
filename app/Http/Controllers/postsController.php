@@ -8,23 +8,47 @@ use Carbon\Carbon;
 
 use Illuminate\Http\Request;
 
+use App\Http\Requests\createPostRequest;
+use App\Http\Requests\updatePostRequest;
+
+use Illuminate\Support\Facades\Auth;
+
+
 class postsController extends Controller
 {
   
+
+    function __construct(){
+        $this->middleware("auth")->only('create');
+    }
+
+
     public function index()
     {
-        $posts = Post::all();
-            return view("home", ["posts"=>$posts]);
+            return view("home");
         
     }
 
+    public function main()
+    {
+        $posts = Post::all();
+            return view("main", ["posts"=>$posts]);
+        
+    }
+
+
     public function showDetails()
     {
-        $posts = Post::withTrashed()->paginate(3);
+        $posts = Post::withTrashed()->paginate(1);
         return view('show', ['posts' => $posts]);
     }
     public function create()
     {
+
+        // if (!Auth::check()) {
+        //     return redirect()->route('login')->with('error', 'You need to be logged in to create a post.');
+        // }
+
         $users = User::all();
         return view('create_post', compact('users'));
 
@@ -43,25 +67,8 @@ class postsController extends Controller
     
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            "name" => "required",
-            "title" => "required",
-            "content" => "required",
-            "image" => "required|image|mimes:jpeg,png,jpg|max:2048"
-
-        ],[
-            "name.required" => "you have to choose a name",
-            "title.required" => "no posts without a title",
-            "content.required" => "you have to add a content to your post",
-            "grade.required" => "There is no student without grade",
-            "image.required" => "Image is required to create a post",
-
-        ]);
-        $userInfo = explode(',', $request->input('name'));
-        $id = $userInfo[0]; 
-        $name = $userInfo[1]; 
-
-
+        // dd($request);
+        
         $my_path = '';
         $data = request()->all();
 
@@ -71,18 +78,16 @@ class postsController extends Controller
             $my_path=$image->store('posts_images','posts_images');
 
         }
-        $data['creator_name'] = $name;
-        $data['creator_id'] = $id;
+
 
         $post = new Post();
-        $post->creator_name =$name;
-        $post->creator_id =$id;
+        $post->creator_name =Auth::user()->name;
+        $post->creator_id =Auth::id();
         $post->title = $data['title'];
         $post->create_date = Carbon::now()->toDateString();
         $post->content= $data['content'];
         $post->image= $my_path;
         $post->save();
-
         return  to_route("posts.details");
 
         
@@ -101,30 +106,24 @@ class postsController extends Controller
     public function edit(Post $post)
     {
         $users = User::all();
+        // return view("edit_post", ["post"=>$post , "users"=> $users]);
 
-        return view("edit_post", ["post"=>$post , "users"=> $users]);
+        if (Auth::id() == $post->creator_id){
+            return view("edit_post", ["post"=>$post , "users"=> $users]);
 
+        }else{
+            return redirect()->route('posts.details')
+            ->with('error', 'You are not authorized to edit this post it is not yours.');        }
+        
     }
 
+   
+  
    
     public function update(Request $request, Post $post)
     {
 
-        $validated = $request->validate([
-            "id" => "required|exists:users,id",
-            "title" => "required",
-            "content" => "required",
-            "image" => "nullable|image|mimes:jpeg,png,jpg|max:2048" 
-
-        ],[
-            "it.required" => "you have to choose a creator and have to be an exesting user",
-            "title.required" => "no posts without a title",
-            "content.required" => "you have to add a content to your post",
-            "grade.required" => "There is no student without grade",
-            "image.required" => "Image is required to create a post",
-
-        ]);
-
+     
        
 
 
@@ -139,26 +138,22 @@ class postsController extends Controller
         }
      
 
-        $user = User::find( $data['id']);
 
 
-        $post->creator_name =$user->name;
-        $post->creator_id =$user->id;
+        $post->creator_name =Auth::user()->name;
+        $post->creator_id =Auth::id();
         $post->title = $data['title'];
         $post->create_date = Carbon::now()->toDateString();
         $post->content= $data['content'];
         $post->image= $my_path;
 
-        // just to be clear
-        // If the model instance is new (i.e., it has not been saved to the database before), calling save() will insert a new record.
-        
+      
         $post->save();
 
         return  to_route("posts.details");
 
         
     }
-
    
 
     public function destroy(Post $post)
